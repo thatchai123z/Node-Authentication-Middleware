@@ -22,17 +22,16 @@ const initMySQL = async () => {
 }
 
 const verifyToken = (req, res, next) => {
-    const c = cookie.parse(req.headers.cookie || "")
-    const token = c.jwt
+    const token = req.header('Authorization')
+    // const token = c.jwt
 
     if (!token) return res.status(401).json({ error: 'Access denied' })
     try {
         const decoded = jwt.verify(token, 'your-secret-key');
         req.userId = decoded.userId;
-        console.log("decode : ", decoded.userId);
-
-        console.log("req", req.userId);
-
+        // console.log("decode : ", decoded.userId);
+        // console.log("req", req.userId);
+        // console.log(userId);
         next()
     } catch (error) {
         res.status(401).json({ error: 'Invalid token' });
@@ -123,7 +122,7 @@ app.post('/register', async (req, res) => {
         let user = req.body
 
         let checkUser = await conn.query('SELECT * FROM users WHERE username = ?', user.username)
-        if (checkUser) {
+        if (checkUser[0][0]) {
             throw new Error('This user already exists');
         }
         // เข้ารหัสด้วย bcrypt
@@ -186,6 +185,16 @@ app.post('/login', async (req, res) => {
             }
         });
 
+    } catch (error) {
+        console.log('Error : ', error.message);
+        res.status(500).json({ message: 'someting went wrong' })
+    }
+})
+
+app.get('/user', verifyToken, async (req, res) => {
+    try {
+        let result = await conn.query("SELECT * FROM users WHERE id = ?", req.userId)
+        res.status(200).json(result[0][0])
     } catch (error) {
         console.log('Error : ', error.message);
         res.status(500).json({ message: 'someting went wrong' })
